@@ -1,0 +1,95 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  email         String    @unique
+  name          String?
+  password      String
+  bio           String?
+  avatar        String?
+  role          UserRole  @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  blogs         Blog[]    @relation("UserBlogs")
+  comments      Comment[] @relation("UserComments")
+  likes         Like[]    @relation("UserLikes")
+
+  @@map("users")
+}
+
+model Blog {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  content     String
+  status      BlogStatus @default(DRAFT)
+  views       Int        @default(0)
+  slug        String     @unique
+  authorId    String     @db.ObjectId
+  author      User       @relation("UserBlogs", fields: [authorId], references: [id], onDelete: Cascade)
+  tags        String[]   // In MongoDB, we'll store tags as an array of strings
+  comments    Comment[]  @relation("BlogComments")
+  likes       Like[]     @relation("BlogLikes")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("blogs")
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  blogs     Blog[]
+  createdAt DateTime @default(now())
+
+  @@map("tags")
+}
+
+model Comment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  content   String
+  blogId    String   @db.ObjectId
+  blog      Blog     @relation("BlogComments", fields: [blogId], references: [id], onDelete: Cascade)
+  authorId  String   @db.ObjectId
+  author    User     @relation("UserComments", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("comments")
+}
+
+model Like {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  blogId    String   @db.ObjectId
+  blog      Blog     @relation("BlogLikes", fields: [blogId], references: [id], onDelete: Cascade)
+  userId    String   @db.ObjectId
+  user      User     @relation("UserLikes", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([blogId, userId])
+  @@map("likes")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}

@@ -1,0 +1,247 @@
+@import 'tailwindcss';
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+
+    --radius: 0.5rem;
+    
+    /* Editor-specific colors */
+    --editor: 0 0% 100%;
+    --editor-foreground: 222.2 84% 4.9%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+    
+    /* Editor-specific colors for dark mode */
+    --editor: 222.2 84% 4.9%;
+    --editor-foreground: 210 40% 98%;
+  }
+
+  /* Warm theme overlay - for eye care */
+  .warm {
+    --background: 40 30% 97%;
+    --foreground: 30 10% 10%;
+    
+    --card: 40 30% 97%;
+    --card-foreground: 30 10% 10%;
+    
+    --popover: 40 30% 97%;
+    --popover-foreground: 30 10% 10%;
+    
+    --primary: 35 80% 50%;
+    --primary-foreground: 30 10% 98%;
+    
+    --secondary: 35 40% 90%;
+    --secondary-foreground: 30 10% 10%;
+    
+    --muted: 35 40% 90%;
+    --muted-foreground: 30 10% 40%;
+    
+    --accent: 35 40% 90%;
+    --accent-foreground: 30 10% 10%;
+    
+    --border: 30 30% 85%;
+    --input: 30 30% 85%;
+    --ring: 35 80% 50%;
+    
+    /* Editor-specific warm colors */
+    --editor: 40 30% 97%;
+    --editor-foreground: 30 10% 10%;
+  }
+
+  .warm.dark {
+    --background: 30 20% 10%;
+    --foreground: 35 30% 90%;
+    
+    --card: 30 20% 10%;
+    --card-foreground: 35 30% 90%;
+    
+    --popover: 30 20% 10%;
+    --popover-foreground: 35 30% 90%;
+    
+    --primary: 35 70% 50%;
+    --primary-foreground: 30 10% 10%;
+    
+    --secondary: 30 20% 20%;
+    --secondary-foreground: 35 30% 90%;
+    
+    --muted: 30 20% 20%;
+    --muted-foreground: 35 30% 70%;
+    
+    --accent: 30 20% 20%;
+    --accent-foreground: 35 30% 90%;
+    
+    --border: 30 20% 25%;
+    --input: 30 20% 25%;
+    --ring: 35 70% 50%;
+    
+    /* Editor-specific warm dark colors */
+    --editor: 30 20% 10%;
+    --editor-foreground: 35 30% 90%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    background-image: 
+      radial-gradient(at 100% 0%, rgba(var(--primary) / 0.07) 0px, transparent 60%),
+      radial-gradient(at 0% 100%, rgba(var(--primary) / 0.05) 0px, transparent 50%);
+    background-attachment: fixed;
+    background-size: 100% 100%;
+  }
+  
+  /* Enhanced card styles */
+  .card {
+    @apply border border-primary/10 rounded-lg shadow-sm hover:shadow-md transition-shadow;
+  }
+  
+  /* Enhanced badge styles */
+  .badge {
+    @apply bg-primary/10 text-primary px-2 py-1 rounded-full text-xs font-medium;
+  }
+  
+  /* Blog post cards with subtle gradient in light mode */
+  :root:not(.dark) .card {
+    background: linear-gradient(to bottom right, white, hsl(var(--secondary)/0.5));
+  }
+}
+
+/* Editor styles */
+.editor-toolbar {
+  @apply flex items-center gap-1 mb-4 p-2 border-b rounded-t-md;
+}
+
+.editor-toolbar .divider {
+  @apply w-px h-6 bg-border mx-1;
+}
+
+.editor-container {
+  @apply min-h-[300px] border rounded-md p-4;
+}
+
+.ProseMirror {
+  @apply min-h-[300px] outline-none;
+}
+
+.ProseMirror p {
+  @apply mb-2;
+}
+
+.ProseMirror h1 {
+  @apply text-3xl font-bold mb-4;
+}
+
+.ProseMirror h2 {
+  @apply text-2xl font-bold mb-3;
+}
+
+.ProseMirror blockquote {
+  @apply border-l-4 pl-4 italic my-4;
+}
+
+.ProseMirror ul {
+  @apply list-disc pl-6 mb-4;
+}
+
+.ProseMirror ol {
+  @apply list-decimal pl-6 mb-4;
+}
+
+.tiptap-editor {
+  @apply bg-editor text-editor-foreground;
+}
+
+/* Add animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Enhanced link styles */
+a:not(.btn):not([class*="hover"]):hover {
+  @apply text-primary transition-colors;
+}
+
+/* Enhanced button styles */
+.btn-primary {
+  @apply bg-primary text-primary-foreground hover:bg-primary/90 transition-colors;
+}
+
+/* Blog card enhancement */
+.blog-card {
+  @apply overflow-hidden rounded-lg border border-primary/10;
+}
+
+.blog-card:hover {
+  @apply shadow-md transform transition-all duration-300 border-primary/20;
+}
+
+.blog-card-title {
+  @apply font-serif font-bold text-xl mb-2 transition-colors;
+}
+
+.blog-card:hover .blog-card-title {
+  @apply text-primary;
+}

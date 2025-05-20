@@ -226,15 +226,31 @@ LOG_LEVEL=dev
 
 ### Docker Support
 
-We provide a Docker configuration for easy deployment:
+We provide Docker and Docker Compose configurations for easy deployment:
 
 ```bash
 # Build the Docker image
-docker build -t blogify .
+npm run docker:build
 
 # Run the container
-docker run -p 12000:12000 -p 12001:12001 --env-file .env blogify
+npm run docker:run
+
+# Or use Docker Compose (recommended)
+npm run docker:compose
+
+# View logs
+npm run docker:logs
+
+# Stop containers
+npm run docker:compose:down
 ```
+
+The Docker Compose setup includes:
+- MongoDB container with persistent volume
+- Backend API container
+- Frontend container
+- Automatic network configuration
+- Health checks for all services
 
 ## 🧠 Key Learnings
 
@@ -256,47 +272,50 @@ During the development of Blogify, we gained valuable insights into:
 
 ### Authentication
 - `POST /api/auth/register` - Register a new user
+  - Request: `{ "name": "string", "email": "string", "password": "string" }`
+  - Response: `{ "success": true, "message": "User registered successfully", "data": { "token": "string", "user": {...} } }`
+
 - `POST /api/auth/login` - Login and get JWT token
-- `GET /api/auth/me` - Get current user info (protected)
-- `POST /api/auth/refresh` - Refresh access token using refresh token
-- `POST /api/auth/logout` - Invalidate refresh token (protected)
+  - Request: `{ "email": "string", "password": "string" }`
+  - Response: `{ "success": true, "message": "Login successful", "data": { "token": "string", "user": {...} } }`
+
+- `GET /api/profile` - Get current user profile with blog stats (protected)
+  - Response: `{ "success": true, "message": "Profile retrieved successfully", "data": { "user": {...}, "stats": {...} } }`
 
 ### Blogs
 - `GET /api/blogs` - Get all published blogs with pagination and filtering
-- `GET /api/blogs/drafts` - Get user's draft blogs (protected)
+  - Query params: `page`, `limit`, `tag`, `search`, `sortBy`, `sortOrder`
+  - Response: `{ "success": true, "message": "Blogs retrieved successfully", "data": [...], "meta": { "pagination": {...}, "filters": {...} } }`
+
 - `POST /api/blogs` - Create a new blog (protected)
+  - Request: `{ "title": "string", "content": "string", "tags": ["string"], "status": "DRAFT|PUBLISHED" }`
+  - Response: `{ "success": true, "message": "Blog created successfully", "data": {...} }`
+
 - `GET /api/blogs/:id` - Get a specific blog (increments view count)
+  - Response: `{ "success": true, "message": "Blog retrieved successfully", "data": { "blog": {...}, "relatedBlogs": [...] } }`
+
 - `PUT /api/blogs/:id` - Update a blog (protected)
+  - Request: `{ "title": "string", "content": "string", "tags": ["string"], "status": "string" }`
+  - Response: `{ "success": true, "message": "Blog updated successfully", "data": {...} }`
+
 - `DELETE /api/blogs/:id` - Delete a blog (protected)
-- `PATCH /api/blogs/:id/publish` - Publish a draft blog (protected)
-- `PATCH /api/blogs/:id/archive` - Archive a published blog (protected)
+  - Response: `{ "success": true, "message": "Blog deleted successfully" }`
+
 - `GET /api/blogs/trending` - Get trending blogs based on views and recency
-- `GET /api/blogs/search` - Search blogs by title, content, or tags
-
-### User
-- `GET /api/users/profile` - Get user profile (protected)
-- `PUT /api/users/profile` - Update user profile (protected)
-- `GET /api/users/:id/blogs` - Get blogs by a specific user
-- `GET /api/users/suggested` - Get suggested users to follow
-
-### Comments
-- `GET /api/blogs/:id/comments` - Get comments for a blog with pagination
-- `POST /api/blogs/:id/comments` - Add a comment to a blog (protected)
-- `PUT /api/comments/:id` - Update a comment (protected)
-- `DELETE /api/comments/:id` - Delete a comment (protected)
-
-### Likes
-- `POST /api/blogs/:id/like` - Like a blog (protected)
-- `DELETE /api/blogs/:id/like` - Unlike a blog (protected)
-- `GET /api/users/likes` - Get blogs liked by the current user (protected)
+  - Query params: `limit`
+  - Response: `{ "success": true, "message": "Trending blogs retrieved successfully", "data": [...] }`
 
 ### Tags
-- `GET /api/tags` - Get all available tags
+- `GET /api/tags` - Get all available tags with usage count
+  - Response: `{ "success": true, "message": "Tags retrieved successfully", "data": [{ "name": "string", "count": number }] }`
+
 - `GET /api/tags/:tag/blogs` - Get blogs with a specific tag
+  - Query params: `page`, `limit`
+  - Response: `{ "success": true, "message": "Blogs with tag retrieved successfully", "data": [...], "meta": { "pagination": {...}, "tag": "string" } }`
 
 ### Health and Monitoring
-- `GET /api/health` - Check API health
-- `GET /api/status` - Get detailed API status (admin only)
+- `GET /api/health` - Check API health with detailed system information
+  - Response: `{ "success": true, "message": "Server is healthy", "data": { "status": "ok", "database": {...}, "system": {...} } }`
 
 ### Response Format
 

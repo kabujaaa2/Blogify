@@ -1,13 +1,22 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import tailwindcss from '@tailwindcss/vite';
 import path from "path";
+import { visualizer } from 'rollup-plugin-visualizer';
+import { createHtmlPlugin } from 'vite-plugin-html';
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode, command }) => {
+  // Load env file based on mode
+  const env = loadEnv(mode, process.cwd(), '');
+  const PORT = parseInt(env.PORT || '12000');
+  const API_URL = env.API_URL || 'http://localhost:12001/api';
+  const isProduction = mode === 'production';
+  
+  return {
   server: {
     host: "0.0.0.0",
-    port: 12000,
+    port: PORT,
     cors: true,
     strictPort: true,
     headers: {
@@ -16,11 +25,12 @@ export default defineConfig(({ mode }) => ({
       "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
       "X-Frame-Options": "ALLOWALL",
       "X-Content-Type-Options": "nosniff",
-      "Referrer-Policy": "no-referrer-when-downgrade"
+      "Referrer-Policy": "no-referrer-when-downgrade",
+      "Content-Security-Policy": "frame-ancestors 'self' https://*.all-hands.dev"
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:12001',
+        target: API_URL.replace('/api', ''),
         changeOrigin: true,
         secure: false,
         ws: true,
@@ -31,7 +41,7 @@ export default defineConfig(({ mode }) => ({
           });
           
           // Only log in development mode
-          if (mode === 'development') {
+          if (!isProduction) {
             proxy.on('proxyReq', (proxyReq, req, _res) => {
               console.log(`Proxying ${req.method} request:`, req.url);
             });
@@ -45,14 +55,18 @@ export default defineConfig(({ mode }) => ({
     },
     watch: {
       usePolling: true,
-      ignored: ['**/node_modules/**', '**/dist/**', '**/.git/**'],
+      ignored: ['**/node_modules/**', '**/dist/**', '**/.git/**', '**/logs/**'],
     },
     hmr: {
       overlay: true,
-      clientPort: 12000,
+      clientPort: PORT,
       host: 'localhost',
     },
     open: false,
+    fs: {
+      strict: true,
+      allow: [path.resolve(__dirname, 'src'), path.resolve(__dirname, 'public')],
+    },
   },
   plugins: [
     react({
@@ -62,6 +76,24 @@ export default defineConfig(({ mode }) => ({
       },
     }),
     tailwindcss(),
+    createHtmlPlugin({
+      minify: isProduction,
+      inject: {
+        data: {
+          title: 'Blogify - Modern Blog Platform',
+          description: 'Share your thoughts with the world',
+          apiUrl: API_URL,
+          mode: mode,
+        },
+      },
+    }),
+    // Add bundle visualizer in production build
+    isProduction && visualizer({
+      filename: './dist/stats.html',
+      open: false,
+      gzipSize: true,
+      brotliSize: true,
+    }),
   ].filter(Boolean),
   resolve: {
     alias: {
@@ -79,24 +111,59 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     outDir: 'dist',
-    sourcemap: mode !== 'production',
-    minify: mode === 'production' ? 'terser' : false,
+    sourcemap: !isProduction,
+    minify: isProduction ? 'terser' : false,
     terserOptions: {
       compress: {
-        drop_console: mode === 'production',
-        drop_debugger: mode === 'production',
+        drop_console: isProduction,
+        drop_debugger: isProduction,
+        pure_funcs: isProduction ? ['console.log', 'console.debug', 'console.info'] : [],
       },
     },
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['@emotion/react', '@emotion/styled', 'tailwindcss'],
-          utils: ['date-fns', 'zustand', 'lucide-react'],
+        manualChunks: (id) => {
+          // Create specific chunks for better caching
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('scheduler') || id.includes('prop-types')) {
+              return 'vendor-react';
+            }
+            if (id.includes('@emotion') || id.includes('tailwindcss') || id.includes('styled')) {
+              return 'vendor-ui';
+            }
+            if (id.includes('zustand') || id.includes('date-fns') || id.includes('lucide')) {
+              return 'vendor-utils';
+            }
+            return 'vendor'; // All other node_modules
+          }
+          
+          // Group app code by directory
+          if (id.includes('/src/components/')) {
+            return 'app-components';
+          }
+          if (id.includes('/src/pages/')) {
+            return 'app-pages';
+          }
+          if (id.includes('/src/hooks/') || id.includes('/src/utils/') || id.includes('/src/lib/')) {
+            return 'app-utils';
+          }
         },
-        assetFileNames: 'assets/[name]-[hash][extname]',
-        chunkFileNames: 'assets/[name]-[hash].js',
-        entryFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: (assetInfo) => {
+          const info = assetInfo.name.split('.');
+          const ext = info[info.length - 1];
+          if (/\.(png|jpe?g|gif|svg|webp|avif)$/.test(assetInfo.name)) {
+            return `assets/images/[name]-[hash][extname]`;
+          }
+          if (/\.(woff2?|ttf|eot|otf)$/.test(assetInfo.name)) {
+            return `assets/fonts/[name]-[hash][extname]`;
+          }
+          if (/\.css$/.test(assetInfo.name)) {
+            return `assets/css/[name]-[hash][extname]`;
+          }
+          return `assets/[name]-[hash][extname]`;
+        },
+        chunkFileNames: 'assets/js/[name]-[hash].js',
+        entryFileNames: 'assets/js/[name]-[hash].js',
       },
     },
     target: 'es2018',
@@ -104,18 +171,52 @@ export default defineConfig(({ mode }) => ({
     cssCodeSplit: true,
     reportCompressedSize: true,
     emptyOutDir: true,
+    chunkSizeWarningLimit: 1000, // Increase warning limit to 1MB
   },
   preview: {
-    port: 12000,
+    port: PORT,
     host: '0.0.0.0',
     strictPort: true,
     headers: {
       "Access-Control-Allow-Origin": "*",
-      "X-Frame-Options": "ALLOWALL"
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+      "X-Frame-Options": "ALLOWALL",
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "no-referrer-when-downgrade",
+      "Content-Security-Policy": "frame-ancestors 'self' https://*.all-hands.dev"
+    },
+    proxy: {
+      '/api': {
+        target: API_URL.replace('/api', ''),
+        changeOrigin: true,
+        secure: false,
+      }
     },
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', '@emotion/react', '@emotion/styled'],
+    include: [
+      'react', 
+      'react-dom', 
+      'react-router-dom', 
+      '@emotion/react', 
+      '@emotion/styled',
+      'zustand',
+      'date-fns',
+      'lucide-react'
+    ],
     exclude: [],
+    esbuildOptions: {
+      target: 'es2020',
+    },
   },
-}));
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(mode),
+    'process.env.API_URL': JSON.stringify(API_URL),
+    'import.meta.env.API_URL': JSON.stringify(API_URL),
+  },
+  esbuild: {
+    logOverride: { 'this-is-undefined-in-esm': 'silent' },
+  },
+  }
+});

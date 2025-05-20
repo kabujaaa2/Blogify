@@ -19,6 +19,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 12001;
 
+// Trust proxy for rate limiting behind reverse proxies
+app.set('trust proxy', 1);
+
 // CORS configuration
 const corsOptions = {
   origin: [
@@ -477,28 +480,46 @@ app.get('/api/blogs/:id', async (req, res) => {
 app.post('/api/blogs', 
   authMiddleware,
   [
-    body('title').notEmpty(),
-    body('content').notEmpty()
+    body('title').notEmpty().withMessage('Title is required'),
+    body('content').notEmpty().withMessage('Content is required'),
+    body('tags').isArray().withMessage('Tags must be an array'),
+    body('status').isIn(['DRAFT', 'PUBLISHED']).withMessage('Status must be DRAFT or PUBLISHED')
   ],
   async (req, res) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.apiError({
+          message: 'Validation failed',
+          statusCode: StatusCodes.BAD_REQUEST,
+          errors: errors.array()
+        });
       }
 
       const { title, content, tags = [], status = 'DRAFT' } = req.body;
       const userId = req.user?.userId;
 
       if (!userId) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        return res.apiError({
+          message: 'Authentication required',
+          statusCode: StatusCodes.UNAUTHORIZED
+        });
       }
       
       // Get blogs collection
       const blogsCollection = await getCollection('blogs');
       
       // Create slug from title
-      const slug = title.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-');
+      const baseSlug = title.toLowerCase()
+        .replace(/[^a-zA-Z0-9]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+      
+      // Check if slug exists and make it unique if needed
+      const slugExists = await blogsCollection.findOne({ slug: baseSlug });
+      const slug = slugExists 
+        ? `${baseSlug}-${Date.now().toString().slice(-6)}` 
+        : baseSlug;
       
       // Create blog
       const result = await blogsCollection.insertOne({
@@ -506,7 +527,7 @@ app.post('/api/blogs',
         content,
         slug,
         authorId: userId,
-        tags,
+        tags: Array.isArray(tags) ? tags : [],
         status: status.toUpperCase(),
         views: 0,
         createdAt: new Date(),
@@ -516,10 +537,28 @@ app.post('/api/blogs',
       // Get the created blog
       const blog = await blogsCollection.findOne({ _id: result.insertedId });
 
-      res.status(201).json(blog);
+      // Get user info
+      const usersCollection = await getCollection('users');
+      const author = await usersCollection.findOne(
+        { _id: new ObjectId(userId) },
+        { projection: { name: 1, email: 1 } }
+      );
+
+      res.apiSuccess({
+        message: 'Blog created successfully',
+        statusCode: StatusCodes.CREATED,
+        data: {
+          ...blog,
+          authorName: author?.name || 'Unknown',
+          authorEmail: author?.email || 'unknown@example.com'
+        }
+      });
     } catch (error) {
       console.error('Create blog error:', error);
-      res.status(500).json({ error: 'Server error' });
+      res.apiError({
+        message: 'Error creating blog',
+        statusCode: StatusCodes.INTERNAL_SERVER_ERROR
+      });
     }
 });
 
@@ -647,9 +686,255 @@ app.delete('/api/blogs/:id',
     }
 });
 
+// Get trending blogs
+app.get('/api/blogs/trending', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 5;
+    
+    // Get blogs and users collections
+    const blogsCollection = await getCollection('blogs');
+    const usersCollection = await getCollection('users');
+    
+    // Calculate trending score based on views and recency
+    // Formula: views + (recency_factor * 10)
+    // where recency_factor is higher for newer posts
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    // Find published blogs
+    const blogs = await blogsCollection
+      .find({ 
+        status: 'PUBLISHED',
+        createdAt: { $gte: oneWeekAgo } // Only consider blogs from the last week
+      })
+      .toArray();
+    
+    // Calculate trending score for each blog
+    const blogsWithScore = blogs.map(blog => {
+      const ageInDays = (now.getTime() - new Date(blog.createdAt).getTime()) / (24 * 60 * 60 * 1000);
+      const recencyFactor = Math.max(0, 7 - ageInDays) / 7; // 1.0 for new posts, decreasing to 0 for week-old posts
+      const trendingScore = (blog.views || 0) + (recencyFactor * 50);
+      
+      return {
+        ...blog,
+        trendingScore
+      };
+    });
+    
+    // Sort by trending score and limit results
+    const trendingBlogs = blogsWithScore
+      .sort((a, b) => b.trendingScore - a.trendingScore)
+      .slice(0, limit);
+    
+    // Get author details for each blog
+    const blogsWithAuthor = await Promise.all(trendingBlogs.map(async (blog) => {
+      const author = await usersCollection.findOne(
+        { _id: new ObjectId(blog.authorId) },
+        { projection: { name: 1, email: 1 } }
+      );
+      
+      // Remove trending score from response
+      const { trendingScore, ...blogWithoutScore } = blog;
+      
+      return {
+        ...blogWithoutScore,
+        authorName: author?.name || 'Unknown',
+        authorEmail: author?.email || 'unknown@example.com'
+      };
+    }));
+    
+    res.apiSuccess({
+      message: 'Trending blogs retrieved successfully',
+      data: blogsWithAuthor
+    });
+  } catch (error) {
+    console.error('Get trending blogs error:', error);
+    res.apiError({
+      message: 'Error retrieving trending blogs',
+      statusCode: StatusCodes.INTERNAL_SERVER_ERROR
+    });
+  }
+});
+
 // Health check route
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Server is running' });
+app.get('/api/health', async (req, res) => {
+  try {
+    // Check database connection
+    const db = await getDatabase();
+    const dbStatus = db ? 'connected' : 'disconnected';
+    
+    // Get system info
+    const uptime = process.uptime();
+    const memoryUsage = process.memoryUsage();
+    const nodeVersion = process.version;
+    const environment = process.env.NODE_ENV || 'development';
+    
+    // Format uptime
+    const formatUptime = (seconds) => {
+      const days = Math.floor(seconds / (3600 * 24));
+      const hours = Math.floor((seconds % (3600 * 24)) / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = Math.floor(seconds % 60);
+      
+      return `${days}d ${hours}h ${minutes}m ${secs}s`;
+    };
+    
+    res.apiSuccess({
+      message: 'Server is healthy',
+      data: {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        environment,
+        database: {
+          status: dbStatus,
+          type: 'MongoDB'
+        },
+        system: {
+          nodeVersion,
+          uptime: formatUptime(uptime),
+          memory: {
+            rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
+            heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
+            heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Health check error:', error);
+    res.apiError({
+      message: 'Health check failed',
+      statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+      errors: { detail: error.message }
+    });
+  }
+});
+
+// Get all available tags
+app.get('/api/tags', async (req, res) => {
+  try {
+    // Get blogs collection
+    const blogsCollection = await getCollection('blogs');
+    
+    // Find all published blogs
+    const blogs = await blogsCollection.find({ status: 'PUBLISHED' }).toArray();
+    
+    // Extract all tags
+    const allTags = blogs.reduce((tags, blog) => {
+      if (Array.isArray(blog.tags)) {
+        return [...tags, ...blog.tags];
+      }
+      return tags;
+    }, []);
+    
+    // Count occurrences of each tag
+    const tagCounts = allTags.reduce((counts, tag) => {
+      counts[tag] = (counts[tag] || 0) + 1;
+      return counts;
+    }, {});
+    
+    // Convert to array of objects with tag name and count
+    const tagsWithCount = Object.entries(tagCounts).map(([name, count]) => ({
+      name,
+      count
+    }));
+    
+    // Sort by count (descending)
+    const sortedTags = tagsWithCount.sort((a, b) => b.count - a.count);
+    
+    res.apiSuccess({
+      message: 'Tags retrieved successfully',
+      data: sortedTags
+    });
+  } catch (error) {
+    console.error('Get tags error:', error);
+    res.apiError({
+      message: 'Error retrieving tags',
+      statusCode: StatusCodes.INTERNAL_SERVER_ERROR
+    });
+  }
+});
+
+// Get blogs by tag
+app.get('/api/tags/:tag/blogs', async (req, res) => {
+  try {
+    const { tag } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    // Get blogs and users collections
+    const blogsCollection = await getCollection('blogs');
+    const usersCollection = await getCollection('users');
+    
+    // Find blogs with the specified tag
+    const filter = { 
+      status: 'PUBLISHED',
+      tags: tag
+    };
+    
+    // Get total count for pagination
+    const total = await blogsCollection.countDocuments(filter);
+    
+    // Find blogs with pagination
+    const blogs = await blogsCollection
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray();
+    
+    // Get author details for each blog
+    const blogsWithAuthor = await Promise.all(blogs.map(async (blog) => {
+      const author = await usersCollection.findOne(
+        { _id: new ObjectId(blog.authorId) },
+        { projection: { name: 1, email: 1 } }
+      );
+      
+      return {
+        ...blog,
+        authorName: author?.name || 'Unknown',
+        authorEmail: author?.email || 'unknown@example.com'
+      };
+    }));
+    
+    // Create pagination metadata
+    const totalPages = Math.ceil(total / limit);
+    const hasNext = page < totalPages;
+    const hasPrev = page > 1;
+    
+    // Build pagination links
+    const baseUrl = `${req.protocol}://${req.get('host')}/api/tags/${tag}/blogs`;
+    
+    res.apiSuccess({
+      message: `Blogs with tag "${tag}" retrieved successfully`,
+      data: blogsWithAuthor,
+      meta: {
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          hasNext,
+          hasPrev,
+          links: {
+            self: `${baseUrl}?page=${page}&limit=${limit}`,
+            first: `${baseUrl}?page=1&limit=${limit}`,
+            last: `${baseUrl}?page=${totalPages}&limit=${limit}`,
+            next: hasNext ? `${baseUrl}?page=${page + 1}&limit=${limit}` : null,
+            prev: hasPrev ? `${baseUrl}?page=${page - 1}&limit=${limit}` : null
+          }
+        },
+        tag
+      }
+    });
+  } catch (error) {
+    console.error('Get blogs by tag error:', error);
+    res.apiError({
+      message: 'Error retrieving blogs by tag',
+      statusCode: StatusCodes.INTERNAL_SERVER_ERROR
+    });
+  }
 });
 
 // Error handling middleware (should be after all routes)
@@ -669,16 +954,39 @@ app.use((req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log('Available routes:');
-  console.log('- POST /api/auth/register - Register a new user');
-  console.log('- POST /api/auth/login - Login user');
-  console.log('- GET /api/profile - Get user profile (protected)');
-  console.log('- GET /api/blogs - Get all published blogs');
-  console.log('- GET /api/blogs/:id - Get a single blog post');
-  console.log('- POST /api/blogs - Create a new blog (protected)');
-  console.log('- PUT /api/blogs/:id - Update a blog post (protected)');
-  console.log('- DELETE /api/blogs/:id - Delete a blog post (protected)');
-  console.log('- GET /api/health - Health check');
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  const divider = '='.repeat(50);
+  console.log(divider);
+  console.log(`🚀 Blogify API Server running on port ${PORT}`);
+  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 API URL: http://localhost:${PORT}/api`);
+  console.log(`🔍 Health check: http://localhost:${PORT}/api/health`);
+  console.log(divider);
+  
+  console.log('📝 Available API Routes:');
+  console.log('Authentication:');
+  console.log('  POST /api/auth/register - Register a new user');
+  console.log('  POST /api/auth/login - Login user');
+  console.log('  GET /api/profile - Get user profile (protected)');
+  
+  console.log('Blogs:');
+  console.log('  GET /api/blogs - Get all published blogs with pagination and filtering');
+  console.log('  GET /api/blogs/trending - Get trending blogs');
+  console.log('  GET /api/blogs/:id - Get a single blog post');
+  console.log('  POST /api/blogs - Create a new blog (protected)');
+  console.log('  PUT /api/blogs/:id - Update a blog post (protected)');
+  console.log('  DELETE /api/blogs/:id - Delete a blog post (protected)');
+  
+  console.log('Tags:');
+  console.log('  GET /api/tags - Get all available tags');
+  console.log('  GET /api/tags/:tag/blogs - Get blogs with a specific tag');
+  
+  console.log('System:');
+  console.log('  GET /api/health - Health check');
+  console.log(divider);
+  
+  console.log('📚 API Documentation:');
+  console.log('  All API endpoints return standardized responses:');
+  console.log('  - Success: { success: true, message: string, data: any, statusCode: number }');
+  console.log('  - Error: { success: false, message: string, errors: any, statusCode: number }');
+  console.log(divider);
 }); 

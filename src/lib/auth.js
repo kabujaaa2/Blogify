@@ -1,49 +1,85 @@
 import jwt from 'jsonwebtoken';
+import * as dotenv from 'dotenv';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
 
-if (!process.env.JWT_SECRET) {
-  throw new Error('JWT_SECRET is not defined in environment variables');
-}
+// Get the directory of the current module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_EXPIRES_IN = '7d'; // Token expires in 7 days
+// Load environment variables
+dotenv.config({ path: resolve(__dirname, '..', '..', '.env') });
 
-export const generateToken = (user) => {
+// JWT Secret - Use environment variable or fallback
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-replace-in-production';
+const JWT_EXPIRY = '24h'; // Token expiry time
+
+// Generate JWT token for a user
+export function generateToken(user) {
+  // Payload data to include in the token
   const payload = {
     userId: user.id,
     email: user.email,
     role: user.role
   };
 
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN
-  });
-};
+  // Sign the token with the secret and expiry
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+}
 
-export const verifyToken = (token) => {
+// Verify JWT token
+export function verifyToken(token) {
   try {
+    // Verify and decode the token
     return jwt.verify(token, JWT_SECRET);
   } catch (error) {
-    throw new Error('Invalid token');
+    // Token verification failed
+    return null;
   }
-};
+}
 
-export const extractTokenFromHeader = (authHeader) => {
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new Error('No token provided or invalid token format');
-  }
-
-  return authHeader.split(' ')[1];
-};
-
-export const createAuthMiddleware = () => {
-  return async (req, res, next) => {
-    try {
-      const token = extractTokenFromHeader(req.headers.authorization);
-      const payload = verifyToken(token);
-      req.user = payload;
-      next();
-    } catch (error) {
-      res.status(401).json({ error: 'Unauthorized' });
+// Create Express middleware for authentication
+export function createAuthMiddleware() {
+  return (req, res, next) => {
+    // Get token from Authorization header
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authorization header missing or invalid' });
     }
+    
+    // Extract the token
+    const token = authHeader.split(' ')[1];
+    
+    // Verify the token
+    const decodedToken = verifyToken(token);
+    
+    if (!decodedToken) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    
+    // Attach user data to the request object
+    req.user = decodedToken;
+    
+    // Continue to the next middleware or route handler
+    next();
   };
-}; 
+}
+
+// Middleware for role-based authorization
+export function requireRole(role) {
+  return (req, res, next) => {
+    // Check if user is authenticated
+    if (!req.user) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    
+    // Check if user has the required role
+    if (req.user.role !== role) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    // User has the required role, continue
+    next();
+  };
+} 

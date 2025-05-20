@@ -1,11 +1,15 @@
 import express from 'express';
 import cors from 'cors';
-import { PrismaClient } from '@prisma/client';
+import { getCollection, getDatabase } from './lib/db.js';
 import { createAuthMiddleware, generateToken } from './lib/auth.js';
 import bcrypt from 'bcryptjs';
 import { body, validationResult } from 'express-validator';
+import * as dotenv from 'dotenv';
+import { ObjectId } from 'mongodb';
 
-const prisma = new PrismaClient();
+// Load environment variables
+dotenv.config();
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -33,10 +37,11 @@ app.post('/api/auth/register',
 
       const { email, password, name } = req.body;
 
+      // Get users collection
+      const usersCollection = await getCollection('users');
+
       // Check if user exists
-      const existingUser = await prisma.user.findUnique({
-        where: { email }
-      });
+      const existingUser = await usersCollection.findOne({ email });
 
       if (existingUser) {
         return res.status(400).json({ error: 'User already exists' });
@@ -46,13 +51,13 @@ app.post('/api/auth/register',
       const hashedPassword = await bcrypt.hash(password, 10);
 
       // Create user
-      const user = await prisma.user.create({
-        data: {
-          email,
-          password: hashedPassword,
-          name,
-          role: 'USER'
-        }
+      const result = await usersCollection.insertOne({
+        email,
+        password: hashedPassword,
+        name,
+        role: 'USER',
+        createdAt: new Date(),
+        updatedAt: new Date()
       });
 
       res.status(201).json({ message: 'User created successfully' });
@@ -77,10 +82,11 @@ app.post('/api/auth/login',
 
       const { email, password } = req.body;
 
+      // Get users collection
+      const usersCollection = await getCollection('users');
+
       // Find user
-      const user = await prisma.user.findUnique({
-        where: { email }
-      });
+      const user = await usersCollection.findOne({ email });
 
       if (!user) {
         return res.status(400).json({ error: 'Invalid credentials' });
@@ -105,16 +111,24 @@ app.post('/api/auth/login',
 // Protected route example
 app.get('/api/profile', authMiddleware, async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user?.userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        createdAt: true
-      }
-    });
+    const userId = req.user?.userId;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    // Get users collection
+    const usersCollection = await getCollection('users');
+    
+    // Find user by ID
+    const user = await usersCollection.findOne(
+      { _id: new ObjectId(userId) },
+      { projection: { password: 0 } } // Exclude password
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
     res.json(user);
   } catch (error) {
@@ -127,18 +141,27 @@ app.get('/api/profile', authMiddleware, async (req, res) => {
 // Get all published blogs
 app.get('/api/blogs', async (req, res) => {
   try {
-    const blogs = await prisma.blog.findMany({
-      where: { status: 'PUBLISHED' },
-      include: {
-        author: {
-          select: {
-            name: true,
-            email: true
-          }
-        }
-      }
-    });
-    res.json(blogs);
+    // Get blogs and users collections
+    const blogsCollection = await getCollection('blogs');
+    const usersCollection = await getCollection('users');
+    
+    // Find all published blogs
+    const blogs = await blogsCollection.find({ status: 'PUBLISHED' }).toArray();
+    
+    // Get author details for each blog
+    const blogsWithAuthor = await Promise.all(blogs.map(async (blog) => {
+      const author = await usersCollection.findOne(
+        { _id: new ObjectId(blog.authorId) },
+        { projection: { name: 1, email: 1 } }
+      );
+      
+      return {
+        ...blog,
+        author: author || { name: 'Unknown', email: 'unknown@example.com' }
+      };
+    }));
+    
+    res.json(blogsWithAuthor);
   } catch (error) {
     console.error('Get blogs error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -165,17 +188,28 @@ app.post('/api/blogs',
       if (!userId) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
-
-      const blog = await prisma.blog.create({
-        data: {
-          title,
-          content,
-          slug: title.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-'),
-          authorId: userId,
-          tags,
-          status: 'DRAFT'
-        }
+      
+      // Get blogs collection
+      const blogsCollection = await getCollection('blogs');
+      
+      // Create slug from title
+      const slug = title.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-');
+      
+      // Create blog
+      const result = await blogsCollection.insertOne({
+        title,
+        content,
+        slug,
+        authorId: userId,
+        tags,
+        status: 'DRAFT',
+        views: 0,
+        createdAt: new Date(),
+        updatedAt: new Date()
       });
+      
+      // Get the created blog
+      const blog = await blogsCollection.findOne({ _id: result.insertedId });
 
       res.status(201).json(blog);
     } catch (error) {
@@ -184,7 +218,19 @@ app.post('/api/blogs',
     }
 });
 
+// Health check route
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Server is running' });
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  console.log('Available routes:');
+  console.log('- POST /api/auth/register - Register a new user');
+  console.log('- POST /api/auth/login - Login user');
+  console.log('- GET /api/profile - Get user profile (protected)');
+  console.log('- GET /api/blogs - Get all published blogs');
+  console.log('- POST /api/blogs - Create a new blog (protected)');
+  console.log('- GET /api/health - Health check');
 }); 

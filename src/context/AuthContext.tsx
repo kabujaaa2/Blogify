@@ -25,43 +25,81 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
-// Mock API functions - in a real app, these would call your backend
-const mockLogin = async (email: string, password: string): Promise<User> => {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 800));
-  
-  // Mock authentication - in a real app, this would validate with your backend
-  if (password.length < 6) {
-    throw new Error("Invalid credentials");
+// Real API functions to interact with the backend
+const apiLogin = async (email: string, password: string): Promise<User> => {
+  try {
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Login failed');
+    }
+    
+    const data = await response.json();
+    
+    // Store the token
+    localStorage.setItem('token', data.token);
+    
+    // Get user profile with the token
+    const userResponse = await fetch('/api/profile', {
+      headers: {
+        'Authorization': `Bearer ${data.token}`,
+      },
+    });
+    
+    if (!userResponse.ok) {
+      throw new Error('Failed to fetch user profile');
+    }
+    
+    const userData = await userResponse.json();
+    
+    return {
+      id: userData._id,
+      email: userData.email,
+      name: userData.name,
+    };
+  } catch (error) {
+    console.error('Login error:', error);
+    throw error;
   }
-  
-  // Return a mock user
-  return {
-    id: "user-1",
-    email,
-    name: email.split("@")[0],
-  };
 };
 
-const mockSignup = async (
+const apiSignup = async (
   email: string,
   password: string,
   name: string
 ): Promise<User> => {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 800));
-  
-  // Mock validation
-  if (password.length < 6) {
-    throw new Error("Password must be at least 6 characters");
+  try {
+    // Validate password
+    if (password.length < 6) {
+      throw new Error("Password must be at least 6 characters");
+    }
+    
+    const response = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password, name }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Registration failed');
+    }
+    
+    // After successful registration, login the user
+    return await apiLogin(email, password);
+  } catch (error) {
+    console.error('Signup error:', error);
+    throw error;
   }
-  
-  // Return a mock user
-  return {
-    id: "new-user-" + Date.now(),
-    email,
-    name,
-  };
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -87,7 +125,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setLoading(true);
     
     try {
-      const user = await mockLogin(email, password);
+      const user = await apiLogin(email, password);
       setUser(user);
       localStorage.setItem("user", JSON.stringify(user));
     } catch (error) {
@@ -101,7 +139,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setLoading(true);
     
     try {
-      const user = await mockSignup(email, password, name);
+      const user = await apiSignup(email, password, name);
       setUser(user);
       localStorage.setItem("user", JSON.stringify(user));
     } catch (error) {
@@ -114,6 +152,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
   };
 
   return (

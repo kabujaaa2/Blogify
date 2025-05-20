@@ -18,7 +18,7 @@ const JWT_EXPIRY = '24h'; // Token expiry time
 export function generateToken(user) {
   // Payload data to include in the token
   const payload = {
-    userId: user.id,
+    userId: user._id || user.id, // Support both MongoDB _id and regular id
     email: user.email,
     role: user.role
   };

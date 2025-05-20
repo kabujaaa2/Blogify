@@ -1,33 +1,47 @@
 # Blogify - Modern Blog Platform
 
-Blogify is a full-stack blog platform with rich text editing, auto-saving drafts, authentication, and eye-care mode.
+Blogify is a full-stack blog platform with rich text editing, auto-saving drafts, authentication, and advanced eye-care features.
 
 ## 🚀 Features
 
-- **Rich Text Editor** with formatting options
-- **Auto-Save** drafts every 30 seconds
-- **Authentication** system with protected routes 
-- **Eye-Care Mode** with light/dark and warm color options
-- **Dashboard** to manage your posts and drafts
-- **Home Page** to discover content from other writers
-- **Responsive Design** for all devices
+- **Rich Text Editor** with formatting options and image support
+- **Auto-Save** drafts every 30 seconds with offline capability
+- **Authentication** system with secure JWT and protected routes 
+- **Advanced Eye-Care Mode** with:
+  - Light/dark theme with system preference detection
+  - Color temperature adjustment (warm/cool)
+  - Blue light filter with adjustable intensity
+  - Font size controls for better readability
+  - Reduced motion option for accessibility
+- **Dashboard** to manage your posts and drafts with analytics
+- **Home Page** with trending and personalized content recommendations
+- **Responsive Design** optimized for all devices from mobile to desktop
+- **Search Functionality** with filters and saved search history
 
 ## 🛠️ Tech Stack
 
 ### Frontend
-- React with TypeScript
-- Vite for fast development
-- Tailwind CSS for styling
-- Shadcn/UI component library
-- React Router for navigation
-- Zustand for state management
-- Tanstack Query for data fetching
+- **React 18** with TypeScript for type-safe development
+- **Vite** for lightning-fast development and optimized builds
+- **Tailwind CSS** with custom theming for responsive styling
+- **Shadcn/UI** component library with accessibility features
+- **React Router v6** for client-side navigation and routing
+- **Zustand** for lightweight global state management
+- **Tanstack Query** (React Query) for efficient data fetching and caching
+- **Framer Motion** for smooth animations and transitions
+- **Lucide React** for consistent iconography
+- **date-fns** for date formatting and manipulation
 
 ### Backend
-- Node.js with Express
-- MongoDB Atlas for database
-- JWT for authentication
-- RESTful API architecture
+- **Node.js** with Express for API development
+- **MongoDB Atlas** for cloud database with flexible schema
+- **JWT** with refresh token rotation for secure authentication
+- **RESTful API** architecture with standardized responses
+- **Express Middleware** for request validation and error handling
+- **Helmet** for enhanced API security
+- **Rate Limiting** to prevent abuse
+- **Morgan** for HTTP request logging
+- **HTTP Status Codes** for standardized error responses
 
 ## 📋 Database Schema
 
@@ -88,12 +102,18 @@ Blogify uses MongoDB with the following collections:
 
 ## 🚀 Getting Started
 
-### Frontend Setup
+### Prerequisites
+
+- Node.js (v16 or higher)
+- npm or yarn
+- MongoDB Atlas account (or local MongoDB installation)
+
+### Installation
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/your-username/blogify.git
-cd blogify
+git clone https://github.com/kabujaaa2/Blogify.git
+cd Blogify
 ```
 
 2. Install dependencies:
@@ -101,44 +121,35 @@ cd blogify
 npm install
 ```
 
-3. Start the development server:
+3. Set up environment variables:
+   - Create a `.env` file in the root directory based on the provided `.env.example`
+   - Update the MongoDB connection string with your credentials
+
+### Running the Application
+
+#### Development Mode (Both Frontend and Backend)
+
+Our enhanced development script automatically sets up everything you need:
+
 ```bash
-npm run dev
+./start-dev.sh
 ```
 
-4. The application will be available at `http://localhost:3000`
+This script:
+- Checks for required dependencies
+- Creates a default `.env` file if none exists
+- Verifies MongoDB connection
+- Starts both frontend and backend servers
+- Provides real-time logs
 
-### Backend Setup with MongoDB Atlas
+- Frontend will be available at: `http://localhost:12000`
+- Backend API will be available at: `http://localhost:12001`
 
-1. **Create MongoDB Atlas Account and Cluster**:
-   - Sign up for a MongoDB Atlas account at [https://www.mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas)
-   - Create a new cluster (the free tier is sufficient for development)
-   - Set up database access with a username and password
-   - Configure network access (add your IP address or set to allow access from anywhere for development)
-   - Get your MongoDB connection string from the Atlas dashboard
+#### Running Separately
 
-2. **Set up Environment Variables**:
-   - Create a `.env` file in the root directory of your project
-   - Add the following variables:
-   ```
-   DATABASE_URL="mongodb+srv://<username>:<password>@<cluster-url>/blogify"
-   JWT_SECRET="your-secure-jwt-secret-key"
-   PORT=5000
-   ```
-   - Replace `<username>`, `<password>`, and `<cluster-url>` with your MongoDB Atlas credentials
-
-3. **Start the Backend Server**:
+1. Start the backend server:
 ```bash
-npm run server
-```
-
-4. The server will start at `http://localhost:5000`
-
-### Running Both Frontend and Backend
-
-1. In one terminal, start the backend:
-```bash
-npm run server
+npm run server:dev
 ```
 
 2. In another terminal, start the frontend:
@@ -146,7 +157,84 @@ npm run server
 npm run dev
 ```
 
-3. The full application will be running with the frontend at `http://localhost:3000` and the API at `http://localhost:5000`
+### Production Build
+
+1. Build the frontend with optimizations:
+```bash
+npm run build
+```
+
+2. For a development build (with sourcemaps):
+```bash
+npm run build:dev
+```
+
+3. Start the production server:
+```bash
+npm start
+```
+
+4. Preview the production build locally:
+```bash
+npm run preview
+```
+
+### Environment Configuration
+
+Create a `.env` file in the root directory with the following variables:
+
+```
+# Server Configuration
+NODE_ENV=development
+PORT=12001
+FRONTEND_URL=http://localhost:12000
+
+# MongoDB Connection
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-url>/blogify
+
+# Authentication
+JWT_SECRET=your_jwt_secret_key_here
+JWT_EXPIRES_IN=7d
+REFRESH_TOKEN_SECRET=your_refresh_token_secret
+REFRESH_TOKEN_EXPIRES_IN=30d
+
+# CORS Configuration
+CORS_ORIGIN=http://localhost:12000
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX=100
+
+# Logging
+LOG_LEVEL=dev
+```
+
+### MongoDB Atlas Setup
+
+1. **Create MongoDB Atlas Account and Cluster**:
+   - Sign up at [https://www.mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas)
+   - Create a new cluster (free tier is sufficient for development)
+   - Set up database access with a username and password
+   - Configure network access (add your IP address or allow access from anywhere for development)
+   - Get your MongoDB connection string from the Atlas dashboard
+
+2. **Update Environment Variables**:
+   - Update the `MONGODB_URI` in your `.env` file:
+   ```
+   MONGODB_URI="mongodb+srv://<username>:<password>@<cluster-url>/blogify"
+   ```
+
+### Docker Support
+
+We provide a Docker configuration for easy deployment:
+
+```bash
+# Build the Docker image
+docker build -t blogify .
+
+# Run the container
+docker run -p 12000:12000 -p 12001:12001 --env-file .env blogify
+```
 
 ## 🧠 Key Learnings
 
@@ -169,19 +257,68 @@ During the development of Blogify, we gained valuable insights into:
 ### Authentication
 - `POST /api/auth/register` - Register a new user
 - `POST /api/auth/login` - Login and get JWT token
+- `GET /api/auth/me` - Get current user info (protected)
+- `POST /api/auth/refresh` - Refresh access token using refresh token
+- `POST /api/auth/logout` - Invalidate refresh token (protected)
 
 ### Blogs
-- `GET /api/blogs` - Get all published blogs
+- `GET /api/blogs` - Get all published blogs with pagination and filtering
+- `GET /api/blogs/drafts` - Get user's draft blogs (protected)
 - `POST /api/blogs` - Create a new blog (protected)
-- `GET /api/blogs/:id` - Get a specific blog
+- `GET /api/blogs/:id` - Get a specific blog (increments view count)
 - `PUT /api/blogs/:id` - Update a blog (protected)
 - `DELETE /api/blogs/:id` - Delete a blog (protected)
+- `PATCH /api/blogs/:id/publish` - Publish a draft blog (protected)
+- `PATCH /api/blogs/:id/archive` - Archive a published blog (protected)
+- `GET /api/blogs/trending` - Get trending blogs based on views and recency
+- `GET /api/blogs/search` - Search blogs by title, content, or tags
 
 ### User
-- `GET /api/profile` - Get user profile (protected)
-- `PUT /api/profile` - Update user profile (protected)
+- `GET /api/users/profile` - Get user profile (protected)
+- `PUT /api/users/profile` - Update user profile (protected)
+- `GET /api/users/:id/blogs` - Get blogs by a specific user
+- `GET /api/users/suggested` - Get suggested users to follow
 
-### Health Check
+### Comments
+- `GET /api/blogs/:id/comments` - Get comments for a blog with pagination
+- `POST /api/blogs/:id/comments` - Add a comment to a blog (protected)
+- `PUT /api/comments/:id` - Update a comment (protected)
+- `DELETE /api/comments/:id` - Delete a comment (protected)
+
+### Likes
+- `POST /api/blogs/:id/like` - Like a blog (protected)
+- `DELETE /api/blogs/:id/like` - Unlike a blog (protected)
+- `GET /api/users/likes` - Get blogs liked by the current user (protected)
+
+### Tags
+- `GET /api/tags` - Get all available tags
+- `GET /api/tags/:tag/blogs` - Get blogs with a specific tag
+
+### Health and Monitoring
 - `GET /api/health` - Check API health
+- `GET /api/status` - Get detailed API status (admin only)
+
+### Response Format
+
+All API endpoints return responses in a standardized format:
+
+```json
+// Success response
+{
+  "success": true,
+  "message": "Operation successful",
+  "statusCode": 200,
+  "data": { ... },
+  "meta": { ... } // Optional metadata like pagination
+}
+
+// Error response
+{
+  "success": false,
+  "message": "Error message",
+  "statusCode": 400,
+  "errors": { ... } // Detailed error information
+}
+```
 
 

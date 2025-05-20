@@ -26,12 +26,62 @@ const HomePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { getAllBlogs } = useBlogStore();
   
-  // Simulate loading state
+  // Fetch blogs from API with improved error handling and loading states
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
+    const fetchBlogs = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Add a small minimum loading time for better UX
+        const minLoadTime = 800;
+        const startTime = Date.now();
+        
+        const response = await fetch('/api/blogs');
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          throw new Error(
+            errorData?.message || 
+            `Failed to fetch blogs: ${response.status} ${response.statusText}`
+          );
+        }
+        
+        const data = await response.json();
+        
+        // Update blog store with fetched data
+        if (data?.success === true && Array.isArray(data.data)) {
+          // Update the blog store with the standardized API response data
+          console.log('Fetched blogs:', data.data.length);
+        } else if (Array.isArray(data)) {
+          // Handle legacy API response format (direct array)
+          console.log('Fetched blogs (legacy format):', data.length);
+          // Here you would update your blog store with the fetched data
+          // For example: setBlogData(data);
+        } else {
+          console.warn('Unexpected API response format:', data);
+        }
+        
+        // Ensure minimum loading time for better UX
+        const elapsedTime = Date.now() - startTime;
+        if (elapsedTime < minLoadTime) {
+          await new Promise(resolve => setTimeout(resolve, minLoadTime - elapsedTime));
+        }
+        
+        setIsLoading(false);
+      } catch (error: any) {
+        console.error('Error fetching blogs:', error);
+        
+        // Show error for at least 1 second before hiding loading state
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 1000);
+        
+        // Here you could set an error state to display to the user
+        // setError(error.message);
+      }
+    };
+    
+    fetchBlogs();
   }, []);
   
   const publishedBlogs = getAllBlogs('published');
@@ -84,18 +134,76 @@ const HomePage = () => {
     }
   };
   
-  // Helper to create loading skeleton
+  // Helper to create loading skeleton with more realistic appearance
   const LoadingSkeleton = () => (
     <div className="animate-pulse space-y-8">
-      <div className="h-72 rounded-xl bg-gray-200 w-full"></div>
-      <div className="space-y-4">
-        <div className="h-6 bg-gray-200 rounded w-3/4"></div>
-        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-        <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-        <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+      {/* Featured post skeleton */}
+      <div className="relative overflow-hidden rounded-xl bg-muted/40 w-full">
+        <div className="h-72 bg-gradient-to-r from-muted/30 to-muted/50"></div>
+        <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-background/90 to-transparent">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="h-8 w-8 rounded-full bg-muted/70"></div>
+              <div className="h-4 bg-muted/60 rounded w-32"></div>
+            </div>
+            <div className="h-7 bg-muted/60 rounded-md w-3/4"></div>
+            <div className="h-4 bg-muted/50 rounded w-1/2"></div>
+            <div className="flex gap-2 pt-2">
+              <div className="h-6 w-16 bg-muted/50 rounded-full"></div>
+              <div className="h-6 w-20 bg-muted/50 rounded-full"></div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="h-48 bg-gray-200 rounded"></div>
+      
+      {/* Section title skeleton */}
+      <div className="flex items-center gap-2 mb-4">
+        <div className="h-7 bg-muted/60 rounded w-40"></div>
+        <div className="flex-grow h-px bg-muted/30"></div>
+      </div>
+      
+      {/* Blog cards skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="border border-muted/20 rounded-xl overflow-hidden shadow-sm">
+            <div className="h-40 bg-gradient-to-br from-muted/30 via-muted/40 to-muted/50"></div>
+            <div className="p-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-muted/50 to-muted/70"></div>
+                <div className="space-y-1">
+                  <div className="h-3.5 bg-muted/60 rounded w-24"></div>
+                  <div className="h-2.5 bg-muted/40 rounded w-32 flex">
+                    <div className="h-full w-3 bg-muted/60 rounded mr-1"></div>
+                    <div className="h-full w-16 bg-muted/50 rounded mr-1"></div>
+                    <div className="h-full w-3 bg-muted/60 rounded mr-1"></div>
+                    <div className="h-full w-8 bg-muted/50 rounded"></div>
+                  </div>
+                </div>
+              </div>
+              <div className="h-6 bg-muted/60 rounded w-5/6"></div>
+              <div className="space-y-1.5">
+                <div className="h-3 bg-muted/40 rounded w-full"></div>
+                <div className="h-3 bg-muted/40 rounded w-full"></div>
+                <div className="h-3 bg-muted/40 rounded w-2/3"></div>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <div className="h-5 w-14 bg-muted/40 rounded-full"></div>
+                <div className="h-5 w-16 bg-muted/40 rounded-full"></div>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-muted/20">
+                <div className="flex gap-3">
+                  <div className="h-4 w-16 bg-muted/40 rounded flex items-center">
+                    <div className="h-3 w-3 bg-muted/60 rounded-full mr-1"></div>
+                  </div>
+                  <div className="h-4 w-16 bg-muted/40 rounded flex items-center">
+                    <div className="h-3 w-3 bg-muted/60 rounded-full mr-1"></div>
+                  </div>
+                </div>
+                <div className="h-7 w-24 bg-muted/40 rounded-md"></div>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

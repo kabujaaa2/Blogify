@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  blogify:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "12000:12000"
+      - "12001:12001"
+    environment:
+      - NODE_ENV=production
+      - PORT=12001
+      - FRONTEND_URL=http://localhost:12000
+      - MONGODB_URI=${MONGODB_URI}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
+      - REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET}
+      - REFRESH_TOKEN_EXPIRES_IN=${REFRESH_TOKEN_EXPIRES_IN:-30d}
+      - CORS_ORIGIN=http://localhost:12000
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    networks:
+      - blogify-network
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=blogify
+    networks:
+      - blogify-network
+
+networks:
+  blogify-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:

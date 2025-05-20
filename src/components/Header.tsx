@@ -334,6 +334,116 @@ const Header = () => {
         </div>
       </header>
 
+      {/* Search Overlay */}
+      <div
+        className={cn(
+          "fixed inset-0 z-50 bg-background/80 backdrop-blur-sm transition-opacity duration-200",
+          searchOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        )}
+      >
+        <div className="container mx-auto px-4 pt-20 pb-8">
+          <div className="bg-card rounded-xl shadow-lg border border-border max-w-3xl mx-auto overflow-hidden">
+            <div className="p-4 flex items-center border-b border-border">
+              <Search className="h-5 w-5 text-muted-foreground mr-2" />
+              <input
+                id="search-input"
+                type="search"
+                placeholder="Search for posts, topics, or tags..."
+                className="flex-grow bg-transparent border-0 focus:outline-none text-lg"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSearch(e);
+                  } else if (e.key === 'Escape') {
+                    setSearchOpen(false);
+                  }
+                }}
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSearchOpen(false)}
+                className="ml-2"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            <div className="p-4 max-h-[70vh] overflow-y-auto">
+              <div className="mb-6">
+                <h3 className="font-medium text-sm mb-3">Popular Searches</h3>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full text-xs hover:bg-primary/5 hover:text-primary hover:border-primary/20"
+                    onClick={() => {
+                      setSearchQuery("React");
+                      document.getElementById("search-input")?.focus();
+                    }}
+                  >
+                    React
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full text-xs hover:bg-primary/5 hover:text-primary hover:border-primary/20"
+                    onClick={() => {
+                      setSearchQuery("TypeScript");
+                      document.getElementById("search-input")?.focus();
+                    }}
+                  >
+                    TypeScript
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full text-xs hover:bg-primary/5 hover:text-primary hover:border-primary/20"
+                    onClick={() => {
+                      setSearchQuery("JavaScript");
+                      document.getElementById("search-input")?.focus();
+                    }}
+                  >
+                    JavaScript
+                  </Button>
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-4">
+                <h3 className="font-medium text-sm mb-3">Recent Searches</h3>
+                <div className="space-y-2">
+                  {["Modern web development", "React state management", "CSS Grid vs Flexbox"].map((search, index) => (
+                    <div key={index} className="flex items-center justify-between group">
+                      <Button
+                        variant="ghost"
+                        className="text-sm justify-start px-2 h-8 w-full text-left hover:bg-primary/5"
+                        onClick={() => {
+                          setSearchQuery(search);
+                          document.getElementById("search-input")?.focus();
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span>{search}</span>
+                        </div>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       {/* Mobile Menu */}
       <div 
         className={cn(
@@ -472,13 +582,13 @@ const Header = () => {
       {/* Global Search Overlay */}
       <div 
         className={cn(
-          "fixed inset-0 z-50 bg-black/60 transition-opacity duration-300 flex items-start justify-center pt-24",
+          "fixed inset-0 z-50 bg-black/70 backdrop-blur-sm transition-opacity duration-300 flex items-start justify-center pt-20",
           searchOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
         onClick={() => setSearchOpen(false)}
       >
         <div 
-          className="w-full max-w-3xl mx-4 bg-card rounded-xl shadow-xl overflow-hidden border border-primary/10 animate-in fade-in-0 zoom-in-95 duration-200"
+          className="w-full max-w-3xl mx-4 bg-card rounded-xl shadow-2xl overflow-hidden border border-primary/20 animate-in fade-in-0 zoom-in-95 duration-200"
           onClick={e => e.stopPropagation()}
         >
           <form onSubmit={handleSearch} className="relative">
@@ -487,17 +597,20 @@ const Header = () => {
               id="search-input"
               type="text"
               placeholder="Search articles, topics, and authors..."
-              className="w-full py-5 px-5 pl-12 pr-12 text-foreground bg-card outline-none border-b border-border text-lg"
+              className="w-full py-5 px-5 pl-12 pr-12 text-foreground bg-card outline-none border-b border-border text-lg transition-all focus:border-primary/30"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
+              autoComplete="off"
+              autoFocus
             />
             {searchQuery && (
               <Button 
                 type="button"
                 variant="ghost" 
                 size="icon" 
-                className="absolute right-12 top-1/2 -translate-y-1/2 h-8 w-8"
+                className="absolute right-12 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-muted"
                 onClick={() => setSearchQuery("")}
+                aria-label="Clear search"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -506,7 +619,8 @@ const Header = () => {
               type="submit" 
               variant="ghost" 
               size="icon" 
-              className="absolute right-3 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full hover:bg-primary/10"
+              className="absolute right-3 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full hover:bg-primary/10 hover:text-primary transition-colors"
+              aria-label="Search"
             >
               <Search className="h-5 w-5" />
             </Button>

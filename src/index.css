@@ -1,247 +1,439 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+/* Add custom font import */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-
-    --radius: 0.5rem;
-    
-    /* Editor-specific colors */
-    --editor: 0 0% 100%;
-    --editor-foreground: 222.2 84% 4.9%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
-    
-    /* Editor-specific colors for dark mode */
-    --editor: 222.2 84% 4.9%;
-    --editor-foreground: 210 40% 98%;
-  }
-
-  /* Warm theme overlay - for eye care */
-  .warm {
-    --background: 40 30% 97%;
-    --foreground: 30 10% 10%;
-    
-    --card: 40 30% 97%;
-    --card-foreground: 30 10% 10%;
-    
-    --popover: 40 30% 97%;
-    --popover-foreground: 30 10% 10%;
-    
-    --primary: 35 80% 50%;
-    --primary-foreground: 30 10% 98%;
-    
-    --secondary: 35 40% 90%;
-    --secondary-foreground: 30 10% 10%;
-    
-    --muted: 35 40% 90%;
-    --muted-foreground: 30 10% 40%;
-    
-    --accent: 35 40% 90%;
-    --accent-foreground: 30 10% 10%;
-    
-    --border: 30 30% 85%;
-    --input: 30 30% 85%;
-    --ring: 35 80% 50%;
-    
-    /* Editor-specific warm colors */
-    --editor: 40 30% 97%;
-    --editor-foreground: 30 10% 10%;
-  }
-
-  .warm.dark {
-    --background: 30 20% 10%;
-    --foreground: 35 30% 90%;
-    
-    --card: 30 20% 10%;
-    --card-foreground: 35 30% 90%;
-    
-    --popover: 30 20% 10%;
-    --popover-foreground: 35 30% 90%;
-    
-    --primary: 35 70% 50%;
-    --primary-foreground: 30 10% 10%;
-    
-    --secondary: 30 20% 20%;
-    --secondary-foreground: 35 30% 90%;
-    
-    --muted: 30 20% 20%;
-    --muted-foreground: 35 30% 70%;
-    
-    --accent: 30 20% 20%;
-    --accent-foreground: 35 30% 90%;
-    
-    --border: 30 20% 25%;
-    --input: 30 20% 25%;
-    --ring: 35 70% 50%;
-    
-    /* Editor-specific warm dark colors */
-    --editor: 30 20% 10%;
-    --editor-foreground: 35 30% 90%;
-  }
+/* Override any dark theme settings with basic visible styling */
+* {
+  box-sizing: border-box;
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-    background-image: 
-      radial-gradient(at 100% 0%, rgba(var(--primary) / 0.07) 0px, transparent 60%),
-      radial-gradient(at 0% 100%, rgba(var(--primary) / 0.05) 0px, transparent 50%);
-    background-attachment: fixed;
-    background-size: 100% 100%;
-  }
-  
-  /* Enhanced card styles */
-  .card {
-    @apply border border-primary/10 rounded-lg shadow-sm hover:shadow-md transition-shadow;
-  }
-  
-  /* Enhanced badge styles */
-  .badge {
-    @apply bg-primary/10 text-primary px-2 py-1 rounded-full text-xs font-medium;
-  }
-  
-  /* Blog post cards with subtle gradient in light mode */
-  :root:not(.dark) .card {
-    background: linear-gradient(to bottom right, white, hsl(var(--secondary)/0.5));
+:root {
+  /* Light mode theme - Soft Neutrals with Calming Accents */
+  --background: 0 0% 100%; /* White */
+  --foreground: 220 14.3% 4.5%; /* Charcoal Gray */
+  --card: 0 0% 100%;
+  --card-foreground: 220 14.3% 4.5%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 14.3% 4.5%;
+  --primary: 210 80% 45%; /* Calming Blue */
+  --primary-foreground: 0 0% 98%;
+  --secondary: 210 20% 94%;
+  --secondary-foreground: 220 14.3% 4.5%;
+  --muted: 210 20% 94%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 145 63% 49%; /* Calming Green */
+  --accent-foreground: 220 14.3% 4.5%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 210 15% 85%;
+  --input: 210 15% 85%;
+  --ring: 210 80% 45%;
+  --radius: 0.5rem;
+
+  /* Theme color accents (Can be refined based on Soft Neutrals palette) */
+  --cyan: 180 100% 50%; /* Example: Could use a softer teal */
+  --violet: 250 70% 60%; /* Example: Could use a muted purple */
+  --purple: 260 60% 65%; /* Example: Could use a soft lavender */
+  --amber: 38 92% 50%;
+  --emerald: 142 71% 45%;
+  --rose: 330 81% 60%;
+  --teal: 179 75% 41%;
+}
+
+/* Dark mode theme - Dark Gray/Black with Soft Text and Muted Accents */
+.dark {
+  --background: 220 20% 15%; /* Dark Gray */
+  --foreground: 210 30% 85%; /* Soft White */
+  --card: 220 20% 15%;
+  --card-foreground: 210 30% 85%;
+  --popover: 220 20% 15%;
+  --popover-foreground: 210 30% 85%;
+  --primary: 230 60% 65%; /* Muted Blue */
+  --primary-foreground: 220 20% 15%;
+  --secondary: 220 20% 25%;
+  --secondary-foreground: 210 30% 85%;
+  --muted: 220 20% 25%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 260 50% 70%; /* Muted Purple */
+  --accent-foreground: 210 30% 85%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 220 20% 25%;
+  --input: 220 20% 25%;
+  --ring: 230 60% 65%;
+}
+
+/* Eye Care (Warm) Mode */
+.warm {
+  --background: 30 20% 98%;
+  --foreground: 30 10% 10%;
+  --card: 30 20% 98%;
+  --card-foreground: 30 10% 10%;
+  --popover: 30 20% 98%;
+  --popover-foreground: 30 10% 10%;
+  --primary: 25 95% 53%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 30 10% 94%;
+  --secondary-foreground: 30 10% 10%;
+  --muted: 30 10% 94%;
+  --muted-foreground: 30 10% 40%;
+  --accent: 30 10% 94%;
+  --accent-foreground: 30 10% 10%;
+  --border: 30 15% 85%;
+  --input: 30 15% 85%;
+  --ring: 25 95% 53%;
+}
+
+/* Eye Care (Cool) Mode */
+.cool {
+  --background: 200 20% 98%;
+  --foreground: 200 10% 10%;
+  --card: 200 20% 98%;
+  --card-foreground: 200 10% 10%;
+  --popover: 200 20% 98%;
+  --popover-foreground: 200 10% 10%;
+  --primary: 220 95% 53%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 200 10% 94%;
+  --secondary-foreground: 200 10% 10%;
+  --muted: 200 10% 94%;
+  --muted-foreground: 200 10% 40%;
+  --accent: 200 10% 94%;
+  --accent-foreground: 200 10% 10%;
+  --border: 200 15% 85%;
+  --input: 200 15% 85%;
+  --ring: 220 95% 53%;
+}
+
+/* Base styles */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  transition: color 0.3s ease, background-color 0.3s ease;
+}
+
+/* Dark mode and warm mode adjustments */
+.dark body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.warm body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  filter: sepia(15%) brightness(100%) contrast(90%);
+}
+
+.cool body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  filter: sepia(5%) brightness(100%) contrast(90%) hue-rotate(180deg);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin-top: 0;
+  color: hsl(var(--foreground));
+  font-family: 'Playfair Display', serif;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--violet)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-fill-color: transparent;
+}
+
+@media (min-width: 768px) {
+  h1 {
+    font-size: 3rem;
   }
 }
 
-/* Editor styles */
-.editor-toolbar {
-  @apply flex items-center gap-1 mb-4 p-2 border-b rounded-t-md;
+h2 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
 }
 
-.editor-toolbar .divider {
-  @apply w-px h-6 bg-border mx-1;
+@media (min-width: 768px) {
+  h2 {
+    font-size: 2.25rem;
+  }
 }
 
-.editor-container {
-  @apply min-h-[300px] border rounded-md p-4;
+h3 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
 }
 
-.ProseMirror {
-  @apply min-h-[300px] outline-none;
+p {
+  margin-bottom: 1.5rem;
 }
 
-.ProseMirror p {
-  @apply mb-2;
+a {
+  color: hsl(var(--primary));
+  text-decoration: none;
+  transition: color 0.2s ease;
 }
 
-.ProseMirror h1 {
-  @apply text-3xl font-bold mb-4;
+a:hover {
+  color: hsl(var(--primary) / 0.8);
 }
 
-.ProseMirror h2 {
-  @apply text-2xl font-bold mb-3;
+.card {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
-.ProseMirror blockquote {
-  @apply border-l-4 pl-4 italic my-4;
+.container {
+  width: 100%;
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 
-.ProseMirror ul {
-  @apply list-disc pl-6 mb-4;
+@media (min-width: 640px) {
+  .container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
 }
 
-.ProseMirror ol {
-  @apply list-decimal pl-6 mb-4;
+@media (min-width: 1024px) {
+  .container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
 }
 
-.tiptap-editor {
-  @apply bg-editor text-editor-foreground;
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
 }
 
-/* Add animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+.text-center {
+  text-align: center;
 }
 
-.fade-in {
-  animation: fadeIn 0.3s ease-out forwards;
-}
-
-/* Enhanced link styles */
-a:not(.btn):not([class*="hover"]):hover {
-  @apply text-primary transition-colors;
-}
-
-/* Enhanced button styles */
-.btn-primary {
-  @apply bg-primary text-primary-foreground hover:bg-primary/90 transition-colors;
-}
-
-/* Blog card enhancement */
+/* Card hover animation with color accents */
 .blog-card {
-  @apply overflow-hidden rounded-lg border border-primary/10;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  border-top: 3px solid transparent;
 }
 
 .blog-card:hover {
-  @apply shadow-md transform transition-all duration-300 border-primary/20;
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border-top-color: hsl(var(--primary));
 }
 
-.blog-card-title {
-  @apply font-serif font-bold text-xl mb-2 transition-colors;
+/* Category colors for cards - adds variety */
+.category-tech { border-top-color: hsl(var(--cyan)); }
+.category-lifestyle { border-top-color: hsl(var(--emerald)); }
+.category-travel { border-top-color: hsl(var(--amber)); }
+.category-health { border-top-color: hsl(var(--rose)); }
+.category-education { border-top-color: hsl(var(--violet)); }
+.category-food { border-top-color: hsl(var(--teal)); }
+
+/* Custom scrollbar - updates for dark mode */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.blog-card:hover .blog-card-title {
-  @apply text-primary;
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.5);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.7);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Hero section styling with gradients */
+.hero-section {
+  background: linear-gradient(135deg, 
+    hsl(var(--primary) / 0.05) 0%,
+    hsl(var(--violet) / 0.1) 100%);
+  border-radius: var(--radius);
+  padding: 2rem;
+  margin-bottom: 3rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-section::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle,
+    hsl(var(--primary) / 0.1) 0%,
+    transparent 70%
+  );
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  .hero-section {
+    padding: 3rem;
+  }
+}
+
+/* Warm mode adjustments for eye comfort */
+.warm .hero-section {
+  background: linear-gradient(135deg, 
+    hsl(30, 100%, 97%) 0%, 
+    hsl(40, 100%, 97%) 100%);
+}
+
+/* Cool mode adjustments for eye comfort */
+.cool .hero-section {
+  background: linear-gradient(135deg, 
+    hsl(200, 100%, 97%) 0%, 
+    hsl(210, 100%, 97%) 100%);
+}
+
+/* Content width for reading comfort */
+.content-container {
+  max-width: 768px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Badge hover effect */
+.badge {
+  transition: all 0.2s ease;
+}
+
+.badge:hover {
+  transform: scale(1.05);
+}
+
+/* Add skeleton loading animation */
+.skeleton {
+  background: linear-gradient(90deg, 
+    hsl(var(--muted)) 25%, 
+    hsl(var(--muted) / 0.8) 50%, 
+    hsl(var(--muted)) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Button loading state */
+.btn-loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.btn-loading:after {
+  content: "";
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  animation: button-spin 0.6s linear infinite;
+  right: 0.75rem;
+}
+
+@keyframes button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Color theme utility classes */
+.text-gradient {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--violet)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+.bg-gradient {
+  background: linear-gradient(135deg, 
+    hsl(var(--primary) / 0.8) 0%,
+    hsl(var(--violet) / 0.8) 100%);
+}
+
+/* Reduced motion settings */
+.reduce-motion * {
+  transition-duration: 0.001ms !important;
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+}
+
+.reduce-motion .blog-card:hover {
+  transform: none !important;
+}
+
+.reduce-motion .badge:hover {
+  transform: none !important;
+}
+
+.reduce-motion .skeleton {
+  animation: none !important;
+  background: hsl(var(--muted)) !important;
+}
+
+.reduce-motion .btn-loading:after {
+  animation: none !important;
 }

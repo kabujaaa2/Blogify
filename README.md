@@ -1,6 +1,4 @@
-
 # Blogify - Modern Blog Platform
-
 
 Blogify is a full-stack blog platform with rich text editing, auto-saving drafts, authentication, and eye-care mode.
 
@@ -25,57 +23,67 @@ Blogify is a full-stack blog platform with rich text editing, auto-saving drafts
 - Zustand for state management
 - Tanstack Query for data fetching
 
-### Backend (Recommended Setup)
+### Backend
 - Node.js with Express
-- PostgreSQL database
+- MongoDB Atlas for database
 - JWT for authentication
 - RESTful API architecture
 
 ## 📋 Database Schema
 
-```sql
--- Users Table
-CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name VARCHAR(255) NOT NULL,
-  email VARCHAR(255) UNIQUE NOT NULL,
-  password VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+Blogify uses MongoDB with the following collections:
 
--- Blogs Table
-CREATE TABLE blogs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title VARCHAR(255) NOT NULL,
-  content TEXT NOT NULL,
-  status VARCHAR(20) NOT NULL DEFAULT 'draft',
-  author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  published_at TIMESTAMP,
-  view_count INTEGER DEFAULT 0
-);
+### Users Collection
+```json
+{
+  "_id": "ObjectId",
+  "email": "string (unique)",
+  "name": "string",
+  "password": "string (hashed)",
+  "bio": "string (optional)",
+  "avatar": "string (optional)",
+  "role": "string (USER or ADMIN)",
+  "createdAt": "Date",
+  "updatedAt": "Date"
+}
+```
 
--- Tags Table
-CREATE TABLE tags (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name VARCHAR(50) UNIQUE NOT NULL
-);
+### Blogs Collection
+```json
+{
+  "_id": "ObjectId",
+  "title": "string",
+  "content": "string",
+  "status": "string (DRAFT, PUBLISHED, or ARCHIVED)",
+  "views": "number",
+  "slug": "string (unique)",
+  "authorId": "ObjectId (reference to Users)",
+  "tags": ["string array"],
+  "createdAt": "Date",
+  "updatedAt": "Date"
+}
+```
 
--- Blog_Tags Junction Table
-CREATE TABLE blog_tags (
-  blog_id UUID REFERENCES blogs(id) ON DELETE CASCADE,
-  tag_id UUID REFERENCES tags(id) ON DELETE CASCADE,
-  PRIMARY KEY (blog_id, tag_id)
-);
+### Comments Collection
+```json
+{
+  "_id": "ObjectId",
+  "content": "string",
+  "blogId": "ObjectId (reference to Blogs)",
+  "authorId": "ObjectId (reference to Users)",
+  "createdAt": "Date",
+  "updatedAt": "Date"
+}
+```
 
--- Draft History Table (Optional)
-CREATE TABLE draft_history (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  blog_id UUID REFERENCES blogs(id) ON DELETE CASCADE,
-  content TEXT NOT NULL,
-  saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+### Likes Collection
+```json
+{
+  "_id": "ObjectId",
+  "blogId": "ObjectId (reference to Blogs)",
+  "userId": "ObjectId (reference to Users)",
+  "createdAt": "Date"
+}
 ```
 
 ## 🚀 Getting Started
@@ -100,39 +108,45 @@ npm run dev
 
 4. The application will be available at `http://localhost:3000`
 
-### Backend Setup (Recommended)
+### Backend Setup with MongoDB Atlas
 
-1. Setup PostgreSQL database
-   - Install PostgreSQL
-   - Create a new database: `CREATE DATABASE blogify;`
-   - Run the schema SQL commands from above
+1. **Create MongoDB Atlas Account and Cluster**:
+   - Sign up for a MongoDB Atlas account at [https://www.mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas)
+   - Create a new cluster (the free tier is sufficient for development)
+   - Set up database access with a username and password
+   - Configure network access (add your IP address or set to allow access from anywhere for development)
+   - Get your MongoDB connection string from the Atlas dashboard
 
-2. Clone and set up the backend repository (if separate):
+2. **Set up Environment Variables**:
+   - Create a `.env` file in the root directory of your project
+   - Add the following variables:
+   ```
+   DATABASE_URL="mongodb+srv://<username>:<password>@<cluster-url>/blogify"
+   JWT_SECRET="your-secure-jwt-secret-key"
+   PORT=5000
+   ```
+   - Replace `<username>`, `<password>`, and `<cluster-url>` with your MongoDB Atlas credentials
+
+3. **Start the Backend Server**:
 ```bash
-git clone https://github.com/your-username/blogify-backend.git
-cd blogify-backend
+npm run server
 ```
 
-3. Install backend dependencies:
+4. The server will start at `http://localhost:5000`
+
+### Running Both Frontend and Backend
+
+1. In one terminal, start the backend:
 ```bash
-npm install
+npm run server
 ```
 
-4. Set up environment variables:
-```
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=blogify
-DB_USER=your_username
-DB_PASSWORD=your_password
-JWT_SECRET=your_jwt_secret
-PORT=3000
-```
-
-5. Start the backend server:
+2. In another terminal, start the frontend:
 ```bash
-npm start
+npm run dev
 ```
+
+3. The full application will be running with the frontend at `http://localhost:3000` and the API at `http://localhost:5000`
 
 ## 🧠 Key Learnings
 
@@ -148,6 +162,26 @@ During the development of Blogify, we gained valuable insights into:
 
 5. **Eye-Care Considerations** - Developing a UI that considers user eye health with different color temperature options
 
-6. **PostgreSQL Relational Design** - Creating an efficient database schema with proper relationships between users, blogs, and tags
+6. **MongoDB Schema Design** - Creating an efficient NoSQL database schema with proper relationships between users, blogs, comments, and likes
+
+## 📝 API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - Register a new user
+- `POST /api/auth/login` - Login and get JWT token
+
+### Blogs
+- `GET /api/blogs` - Get all published blogs
+- `POST /api/blogs` - Create a new blog (protected)
+- `GET /api/blogs/:id` - Get a specific blog
+- `PUT /api/blogs/:id` - Update a blog (protected)
+- `DELETE /api/blogs/:id` - Delete a blog (protected)
+
+### User
+- `GET /api/profile` - Get user profile (protected)
+- `PUT /api/profile` - Update user profile (protected)
+
+### Health Check
+- `GET /api/health` - Check API health
 
 

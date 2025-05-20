@@ -1,18 +1,38 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Search, Calendar, Clock, ArrowRight } from "lucide-react";
+import { 
+  Search, 
+  Calendar, 
+  Clock, 
+  ArrowRight, 
+  TrendingUp, 
+  Bookmark, 
+  ThumbsUp,
+  MessageSquare,
+  Eye
+} from "lucide-react";
 import { useBlogStore } from "@/stores/BlogStore";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const HomePage = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterTag, setFilterTag] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const { getAllBlogs } = useBlogStore();
+  
+  // Simulate loading state
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
   
   const publishedBlogs = getAllBlogs('published');
   
@@ -21,12 +41,32 @@ const HomePage = () => {
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
   
-  // Simple search function
-  const filteredBlogs = sortedBlogs.filter(blog => 
-    blog.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    blog.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    blog.content.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Get featured blog (most viewed)
+  const featuredBlog = [...sortedBlogs].sort((a, b) => 
+    (b.views || 0) - (a.views || 0)
+  )[0];
+  
+  // Get trending blogs (newest ones)
+  const trendingBlogs = sortedBlogs.slice(0, 3);
+  
+  // Get all tags from blogs
+  const allTags = Array.from(
+    new Set(
+      sortedBlogs.flatMap(blog => blog.tags)
+    )
+  ).sort();
+  
+  // Filter blogs by search term and tag
+  const filteredBlogs = sortedBlogs.filter(blog => {
+    const matchesSearch = 
+      blog.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      blog.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      blog.content.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesTag = !filterTag || blog.tags.includes(filterTag);
+    
+    return matchesSearch && matchesTag;
+  });
 
   const formatDate = (dateString: string) => {
     try {
@@ -43,6 +83,22 @@ const HomePage = () => {
       return '';
     }
   };
+  
+  // Helper to create loading skeleton
+  const LoadingSkeleton = () => (
+    <div className="animate-pulse space-y-8">
+      <div className="h-72 rounded-xl bg-gray-200 w-full"></div>
+      <div className="space-y-4">
+        <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+        <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="h-48 bg-gray-200 rounded"></div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -66,7 +122,11 @@ const HomePage = () => {
         </div>
       </div>
       
-      {filteredBlogs.length === 0 ? (
+      {isLoading ? (
+        <div className="max-w-4xl mx-auto">
+          <LoadingSkeleton />
+        </div>
+      ) : filteredBlogs.length === 0 ? (
         <div className="text-center py-12 bg-muted/30 rounded-xl shadow-sm">
           {searchTerm ? (
             <>

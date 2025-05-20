@@ -1,7 +1,6 @@
 
 # Blogify - Modern Blog Platform
 
-![Blogify Logo]
 
 Blogify is a full-stack blog platform with rich text editing, auto-saving drafts, authentication, and eye-care mode.
 
@@ -151,12 +150,4 @@ During the development of Blogify, we gained valuable insights into:
 
 6. **PostgreSQL Relational Design** - Creating an efficient database schema with proper relationships between users, blogs, and tags
 
-## 📝 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- [Shadcn UI](https://ui.shadcn.com/) for the component library
-- [TipTap](https://tiptap.dev/) for the rich text editor
-- [Tailwind CSS](https://tailwindcss.com/) for the utility-first CSS framework
